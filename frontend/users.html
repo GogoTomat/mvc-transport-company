@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пользователи - Транспортная Компания</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <a href="index.html" class="logo">
+                    <span class="logo-icon">🚚</span>
+                    <span>ТрансКомпания</span>
+                </a>
+                
+                <nav>
+                    <ul>
+                        <li><a href="index.html">Главная</a></li>
+                        <li><a href="transport.html">Транспорт</a></li>
+                        <li><a href="routes.html">Маршруты</a></li>
+                        <li><a href="trips.html">Рейсы</a></li>
+                        <li><a href="cargo.html">Грузы</a></li>
+                        <li class="admin-only"><a href="users.html">Пользователи</a></li>
+                    </ul>
+                </nav>
+                
+                <div class="user-info">
+                    <div>
+                        <div class="user-name" id="userName">Пользователь</div>
+                        <div style="font-size: 0.875rem; opacity: 0.9;" id="userRole">Роль</div>
+                    </div>
+                    <button class="btn-logout" onclick="logout()">Выход</button>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <main>
+        <div class="container">
+            <div id="alertContainer"></div>
+            
+            <div class="page-header">
+                <h1 class="page-title">👥 Управление пользователями</h1>
+                <p class="page-subtitle">Администрирование учетных записей</p>
+            </div>
+            
+            <!-- Add User Info -->
+            <div class="card" style="background: linear-gradient(135deg, #fff3cd 0%, #fff8e1 100%); border-color: #ffc107;">
+                <p style="margin: 0; color: #856404;">
+                    ℹ️ <strong>Примечание:</strong> Для создания новых пользователей используйте форму регистрации на странице входа.
+                    Здесь вы можете редактировать роли и удалять существующих пользователей.
+                </p>
+            </div>
+            
+            <!-- Edit Form -->
+            <div class="card" id="editFormCard" style="display: none;">
+                <div class="card-header">
+                    <h2 class="card-title">Редактировать пользователя</h2>
+                    <button class="btn btn-secondary btn-sm" onclick="resetForm()">
+                        Отмена
+                    </button>
+                </div>
+                
+                <form id="userForm" onsubmit="handleSubmit(event)">
+                    <input type="hidden" id="editId">
+                    <div class="grid grid-3">
+                        <div class="form-group">
+                            <label class="form-label">Имя пользователя</label>
+                            <input type="text" class="form-control" id="userName" required minlength="3">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="userEmail" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Роль</label>
+                            <select class="form-control" id="userRole" required>
+                                <option value="admin">Администратор</option>
+                                <option value="manager">Менеджер</option>
+                                <option value="dispatcher">Диспетчер</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Новый пароль (оставьте пустым, если не хотите менять)</label>
+                        <input type="password" class="form-control" id="userPassword" minlength="6">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        💾 Сохранить изменения
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Users List -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Список пользователей</h2>
+                </div>
+                
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Имя пользователя</th>
+                                <th>Email</th>
+                                <th>Роль</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersList">
+                            <tr>
+                                <td colspan="5" style="text-align: center;">
+                                    <div class="spinner"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div>© 2025 Транспортная Компания. Все права защищены.</div>
+                <div class="footer-links">
+                    <a href="#">О компании</a>
+                    <a href="#">Контакты</a>
+                    <a href="#">Поддержка</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/utils.js"></script>
+    <script>
+        // Check if user is admin
+        if (!isAdmin()) {
+            window.location.href = 'index.html';
+        }
+        
+        const roleNames = {
+            'admin': 'Администратор',
+            'manager': 'Менеджер',
+            'dispatcher': 'Диспетчер'
+        };
+        
+        async function loadUsers() {
+            const tbody = document.getElementById('usersList');
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;"><div class="spinner"></div></td></tr>';
+            
+            try {
+                const users = await api.getUsers();
+                const currentUser = getCurrentUser();
+                
+                if (users.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Нет данных</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = users.map(u => `
+                    <tr ${u.id === currentUser.id ? 'style="background-color: #e8f5e9;"' : ''}>
+                        <td>${u.id}</td>
+                        <td>
+                            <strong>${u.username}</strong>
+                            ${u.id === currentUser.id ? '<span class="badge badge-success">Вы</span>' : ''}
+                        </td>
+                        <td>${u.email}</td>
+                        <td>
+                            <span class="badge ${u.role === 'admin' ? 'badge-warning' : 'badge-info'}">
+                                ${roleNames[u.role]}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-primary btn-sm" onclick="editUser(${u.id})">
+                                ✏️ Изменить
+                            </button>
+                            <button class="btn btn-danger btn-sm" 
+                                    onclick="deleteUser(${u.id}, '${u.username}')"
+                                    ${u.id === currentUser.id ? 'disabled title="Нельзя удалить себя"' : ''}>
+                                🗑️ Удалить
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: red;">Ошибка загрузки</td></tr>';
+                showAlert('Ошибка загрузки: ' + error.message, 'error');
+            }
+        }
+        
+        async function handleSubmit(e) {
+            e.preventDefault();
+            
+            const id = document.getElementById('editId').value;
+            const data = {
+                username: document.getElementById('userName').value,
+                email: document.getElementById('userEmail').value,
+                role: document.getElementById('userRole').value
+            };
+            
+            const password = document.getElementById('userPassword').value;
+            if (password) {
+                data.password = password;
+            }
+            
+            try {
+                await api.updateUser(id, data);
+                showAlert('Пользователь успешно обновлен!', 'success');
+                resetForm();
+                loadUsers();
+            } catch (error) {
+                showAlert('Ошибка: ' + error.message, 'error');
+            }
+        }
+        
+        async function editUser(id) {
+            try {
+                const user = await api.getUserById(id);
+                
+                document.getElementById('editId').value = user.id;
+                document.getElementById('userName').value = user.username;
+                document.getElementById('userEmail').value = user.email;
+                document.getElementById('userRole').value = user.role;
+                document.getElementById('userPassword').value = '';
+                
+                document.getElementById('editFormCard').style.display = 'block';
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch (error) {
+                showAlert('Ошибка: ' + error.message, 'error');
+            }
+        }
+        
+        async function deleteUser(id, username) {
+            if (!confirm(`Вы уверены, что хотите удалить пользователя "${username}"?`)) return;
+            
+            try {
+                await api.deleteUser(id);
+                showAlert('Пользователь успешно удален!', 'success');
+                loadUsers();
+            } catch (error) {
+                showAlert('Ошибка удаления: ' + error.message, 'error');
+            }
+        }
+        
+        function resetForm() {
+            document.getElementById('userForm').reset();
+            document.getElementById('editId').value = '';
+            document.getElementById('editFormCard').style.display = 'none';
+        }
+        
+        document.addEventListener('DOMContentLoaded', loadUsers);
+    </script>
+</body>
+</html>

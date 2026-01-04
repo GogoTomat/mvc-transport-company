@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Маршруты - Транспортная Компания</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <a href="index.html" class="logo">
+                    <span class="logo-icon">🚚</span>
+                    <span>ТрансКомпания</span>
+                </a>
+                
+                <nav>
+                    <ul>
+                        <li><a href="index.html">Главная</a></li>
+                        <li><a href="transport.html">Транспорт</a></li>
+                        <li><a href="routes.html">Маршруты</a></li>
+                        <li><a href="trips.html">Рейсы</a></li>
+                        <li><a href="cargo.html">Грузы</a></li>
+                        <li class="admin-only"><a href="users.html">Пользователи</a></li>
+                    </ul>
+                </nav>
+                
+                <div class="user-info">
+                    <div>
+                        <div class="user-name" id="userName">Пользователь</div>
+                        <div style="font-size: 0.875rem; opacity: 0.9;" id="userRole">Роль</div>
+                    </div>
+                    <button class="btn-logout" onclick="logout()">Выход</button>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <main>
+        <div class="container">
+            <div id="alertContainer"></div>
+            
+            <div class="page-header">
+                <h1 class="page-title">🗺️ Управление маршрутами</h1>
+                <p class="page-subtitle">Маршруты перевозок и тарифы</p>
+            </div>
+            
+            <!-- Add/Edit Form -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title" id="formTitle">Добавить маршрут</h2>
+                    <button class="btn btn-secondary btn-sm" onclick="resetForm()" id="cancelBtn" style="display: none;">
+                        Отмена
+                    </button>
+                </div>
+                
+                <form id="routeForm" onsubmit="handleSubmit(event)">
+                    <input type="hidden" id="editId">
+                    <div class="grid grid-3">
+                        <div class="form-group">
+                            <label class="form-label">Название маршрута</label>
+                            <input type="text" class="form-control" id="routeName" 
+                                   placeholder="Москва-Казань" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Тариф за кг (₽)</label>
+                            <input type="number" class="form-control" id="routeTariff" 
+                                   step="0.01" min="0.01" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Расстояние (км)</label>
+                            <input type="number" class="form-control" id="routeDistance" 
+                                   step="0.01" min="0.01" required>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <span id="submitBtnText">➕ Добавить маршрут</span>
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Filters -->
+            <div class="filters">
+                <div class="filter-group">
+                    <div class="form-group" style="margin-bottom: 0; min-width: 250px;">
+                        <label class="form-label">Поиск по названию</label>
+                        <input type="text" class="form-control" id="filterName" 
+                               placeholder="Введите город...">
+                    </div>
+                    
+                    <div style="align-self: flex-end;">
+                        <button class="btn btn-accent" onclick="loadRoutes()">🔍 Применить</button>
+                        <button class="btn btn-secondary" onclick="clearFilters()">Сбросить</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Routes List -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Список маршрутов</h2>
+                </div>
+                
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Маршрут</th>
+                                <th>Расстояние (км)</th>
+                                <th>Тариф за кг</th>
+                                <th>Тариф за тонну</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="routesList">
+                            <tr>
+                                <td colspan="6" style="text-align: center;">
+                                    <div class="spinner"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div>© 2025 Транспортная Компания. Все права защищены.</div>
+                <div class="footer-links">
+                    <a href="#">О компании</a>
+                    <a href="#">Контакты</a>
+                    <a href="#">Поддержка</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/utils.js"></script>
+    <script>
+        async function loadRoutes() {
+            const tbody = document.getElementById('routesList');
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;"><div class="spinner"></div></td></tr>';
+            
+            try {
+                const filters = {};
+                const name = document.getElementById('filterName').value;
+                if (name) filters.name = name;
+                
+                const routes = await api.getRoutes(filters);
+                
+                if (routes.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">Нет данных</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = routes.map(r => `
+                    <tr>
+                        <td>${r.id}</td>
+                        <td><strong>${r.name}</strong></td>
+                        <td>${formatNumber(r.distance)} км</td>
+                        <td>${formatCurrency(r.tariff_per_kg)}</td>
+                        <td><strong>${formatCurrency(r.tariff_per_kg * 1000)}</strong></td>
+                        <td>
+                            <button class="btn btn-primary btn-sm" onclick="editRoute(${r.id})">
+                                ✏️ Изменить
+                            </button>
+                            <button class="btn btn-danger btn-sm ${!isAdmin() ? 'hidden' : ''}" 
+                                    onclick="deleteRoute(${r.id}, '${r.name}')">
+                                🗑️ Удалить
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: red;">Ошибка загрузки</td></tr>';
+                showAlert('Ошибка загрузки: ' + error.message, 'error');
+            }
+        }
+        
+        async function handleSubmit(e) {
+            e.preventDefault();
+            
+            const id = document.getElementById('editId').value;
+            const data = {
+                name: document.getElementById('routeName').value,
+                tariff_per_kg: parseFloat(document.getElementById('routeTariff').value),
+                distance: parseFloat(document.getElementById('routeDistance').value)
+            };
+            
+            try {
+                if (id) {
+                    await api.updateRoute(id, data);
+                    showAlert('Маршрут успешно обновлен!', 'success');
+                } else {
+                    await api.createRoute(data);
+                    showAlert('Маршрут успешно добавлен!', 'success');
+                }
+                
+                resetForm();
+                loadRoutes();
+            } catch (error) {
+                showAlert('Ошибка: ' + error.message, 'error');
+            }
+        }
+        
+        async function editRoute(id) {
+            try {
+                const route = await api.getRouteById(id);
+                
+                document.getElementById('editId').value = route.id;
+                document.getElementById('routeName').value = route.name;
+                document.getElementById('routeTariff').value = route.tariff_per_kg;
+                document.getElementById('routeDistance').value = route.distance;
+                
+                document.getElementById('formTitle').textContent = 'Редактировать маршрут';
+                document.getElementById('submitBtnText').textContent = '💾 Сохранить изменения';
+                document.getElementById('cancelBtn').style.display = 'block';
+                
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch (error) {
+                showAlert('Ошибка: ' + error.message, 'error');
+            }
+        }
+        
+        async function deleteRoute(id, name) {
+            if (!confirm(`Вы уверены, что хотите удалить маршрут "${name}"?`)) return;
+            
+            try {
+                await api.deleteRoute(id);
+                showAlert('Маршрут успешно удален!', 'success');
+                loadRoutes();
+            } catch (error) {
+                showAlert('Ошибка удаления: ' + error.message, 'error');
+            }
+        }
+        
+        function resetForm() {
+            document.getElementById('routeForm').reset();
+            document.getElementById('editId').value = '';
+            document.getElementById('formTitle').textContent = 'Добавить маршрут';
+            document.getElementById('submitBtnText').textContent = '➕ Добавить маршрут';
+            document.getElementById('cancelBtn').style.display = 'none';
+        }
+        
+        function clearFilters() {
+            document.getElementById('filterName').value = '';
+            loadRoutes();
+        }
+        
+        const debouncedSearch = debounce(() => loadRoutes(), 500);
+        document.getElementById('filterName').addEventListener('input', debouncedSearch);
+        
+        document.addEventListener('DOMContentLoaded', loadRoutes);
+    </script>
+</body>
+</html>

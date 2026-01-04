@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Главная - Транспортная Компания</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <a href="index.html" class="logo">
+                    <span class="logo-icon">🚚</span>
+                    <span>ТрансКомпания</span>
+                </a>
+                
+                <nav>
+                    <ul>
+                        <li><a href="index.html">Главная</a></li>
+                        <li><a href="transport.html">Транспорт</a></li>
+                        <li><a href="routes.html">Маршруты</a></li>
+                        <li><a href="trips.html">Рейсы</a></li>
+                        <li><a href="cargo.html">Грузы</a></li>
+                        <li class="admin-only"><a href="users.html">Пользователи</a></li>
+                    </ul>
+                </nav>
+                
+                <div class="user-info">
+                    <div>
+                        <div class="user-name" id="userName">Пользователь</div>
+                        <div style="font-size: 0.875rem; opacity: 0.9;" id="userRole">Роль</div>
+                    </div>
+                    <button class="btn-logout" onclick="logout()">Выход</button>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <main>
+        <div class="container">
+            <div id="alertContainer"></div>
+            
+            <div class="page-header">
+                <h1 class="page-title">Добро пожаловать в систему управления</h1>
+                <p class="page-subtitle">Управление транспортной компанией в одном месте</p>
+            </div>
+            
+            <!-- Statistics -->
+            <div class="grid grid-3 mb-3">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalRoutes">-</div>
+                    <div class="stat-label">Маршрутов</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #ff6b35 0%, #e55a2b 100%);">
+                    <div class="stat-value" id="totalTrips">-</div>
+                    <div class="stat-label">Рейсов</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #28a745 0%, #218838 100%);">
+                    <div class="stat-value" id="totalTransport">-</div>
+                    <div class="stat-label">Транспорта</div>
+                </div>
+            </div>
+            
+            <!-- Cost Calculator -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">📊 Калькулятор стоимости перевозки</h2>
+                </div>
+                
+                <form id="calculatorForm" onsubmit="calculateCost(event)">
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label class="form-label">Маршрут</label>
+                            <select class="form-control" id="calcRouteId" required>
+                                <option value="">Выберите маршрут...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Вес груза (кг)</label>
+                            <input type="number" class="form-control" id="calcWeight" 
+                                   step="0.01" min="0.01" required>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-accent">
+                        🧮 Рассчитать стоимость
+                    </button>
+                </form>
+                
+                <div id="calculationResult" class="hidden" style="margin-top: 2rem; padding: 1.5rem; background: linear-gradient(135deg, #f7fafc 0%, #e2e8f0 100%); border-radius: 8px;">
+                    <h3 style="margin-bottom: 1rem; color: var(--dark-blue);">Результат расчета:</h3>
+                    <div class="grid grid-2">
+                        <div>
+                            <strong>Маршрут:</strong> <span id="resultRoute"></span><br>
+                            <strong>Вес груза:</strong> <span id="resultWeight"></span> кг<br>
+                            <strong>Расстояние:</strong> <span id="resultDistance"></span> км
+                        </div>
+                        <div>
+                            <strong>Тариф за кг:</strong> <span id="resultTariff"></span><br>
+                            <strong style="font-size: 1.5rem; color: var(--accent-orange);">
+                                Итого: <span id="resultTotal"></span>
+                            </strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Links -->
+            <div class="grid grid-2 mt-2">
+                <div class="card">
+                    <h3 style="margin-bottom: 1rem; color: var(--dark-blue);">🚛 Быстрые действия</h3>
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <a href="transport.html" class="btn btn-primary" style="text-decoration: none;">
+                            Добавить транспорт
+                        </a>
+                        <a href="routes.html" class="btn btn-primary" style="text-decoration: none;">
+                            Создать маршрут
+                        </a>
+                        <a href="trips.html" class="btn btn-primary" style="text-decoration: none;">
+                            Запланировать рейс
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3 style="margin-bottom: 1rem; color: var(--dark-blue);">📈 Статистика грузов</h3>
+                    <div style="font-size: 1.1rem;">
+                        <div style="margin-bottom: 0.5rem;">
+                            <strong>Всего грузов:</strong> <span id="totalCargo">-</span>
+                        </div>
+                        <div>
+                            <strong>Общий вес:</strong> <span id="totalCargoWeight">-</span> кг
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div>© 2025 Транспортная Компания. Все права защищены.</div>
+                <div class="footer-links">
+                    <a href="#">О компании</a>
+                    <a href="#">Контакты</a>
+                    <a href="#">Поддержка</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/utils.js"></script>
+    <script>
+        async function loadStatistics() {
+            try {
+                const stats = await api.getStatistics();
+                document.getElementById('totalRoutes').textContent = stats.total_routes;
+                document.getElementById('totalTrips').textContent = stats.total_trips;
+                document.getElementById('totalTransport').textContent = stats.total_transport;
+                document.getElementById('totalCargo').textContent = stats.total_cargo;
+                document.getElementById('totalCargoWeight').textContent = 
+                    formatNumber(stats.total_cargo_weight_kg);
+            } catch (error) {
+                console.error('Failed to load statistics:', error);
+            }
+        }
+        
+        async function loadRoutes() {
+            try {
+                const routes = await api.getRoutes();
+                const select = document.getElementById('calcRouteId');
+                select.innerHTML = '<option value="">Выберите маршрут...</option>';
+                
+                routes.forEach(route => {
+                    const option = document.createElement('option');
+                    option.value = route.id;
+                    option.textContent = `${route.name} (${formatNumber(route.tariff_per_kg)} ₽/кг)`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Failed to load routes:', error);
+            }
+        }
+        
+        async function calculateCost(e) {
+            e.preventDefault();
+            
+            const routeId = document.getElementById('calcRouteId').value;
+            const weight = document.getElementById('calcWeight').value;
+            
+            try {
+                const result = await api.calculateCost(routeId, weight);
+                
+                document.getElementById('resultRoute').textContent = result.route_name;
+                document.getElementById('resultWeight').textContent = formatNumber(result.weight);
+                document.getElementById('resultDistance').textContent = formatNumber(result.distance);
+                document.getElementById('resultTariff').textContent = formatCurrency(result.tariff_per_kg);
+                document.getElementById('resultTotal').textContent = formatCurrency(result.total_cost);
+                
+                document.getElementById('calculationResult').classList.remove('hidden');
+                
+                showAlert('Расчет выполнен успешно!', 'success');
+            } catch (error) {
+                showAlert('Ошибка расчета: ' + error.message, 'error');
+            }
+        }
+        
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStatistics();
+            loadRoutes();
+        });
+    </script>
+</body>
+</html>
