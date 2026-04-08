@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: transport-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - sqlite_data:/app
+    networks:
+      - transport-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: transport-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - transport-net
+
+volumes:
+  sqlite_data:
+
+networks:
+  transport-net:
+    driver: bridge
