@@ -4,29 +4,25 @@ services:
   backend:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: docker/backend/Dockerfile
     container_name: transport-backend
-    ports:
-      - "8000:8000"
-    volumes:
-      - sqlite_data:/app
     networks:
       - transport-net
 
-  frontend:
+  nginx:
     build:
-      context: ./frontend
+      context: ./nginx
       dockerfile: Dockerfile
-    container_name: transport-frontend
+    container_name: transport-nginx
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - ./frontend:/usr/share/nginx/html
     depends_on:
       - backend
     networks:
       - transport-net
-
-volumes:
-  sqlite_data:
 
 networks:
   transport-net:
